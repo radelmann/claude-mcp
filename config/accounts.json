@@ -1,0 +1,19 @@
+{
+  "accounts": [
+    {
+      "id": "personal",
+      "label": "Personal",
+      "services": ["gmail"]
+    },
+    {
+      "id": "pm-personal",
+      "label": "Pink Mammoth - Personal",
+      "services": ["gmail"]
+    },
+    {
+      "id": "pm-finance",
+      "label": "Pink Mammoth - Finance",
+      "services": ["gmail"]
+    }
+  ]
+}
