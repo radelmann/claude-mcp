@@ -1,0 +1,23 @@
+{
+  "name": "rob-mcp",
+  "version": "1.0.0",
+  "description": "Rob's personal MCP server",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "add-account": "tsx scripts/add-account.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.0",
+    "google-auth-library": "^9.15.0",
+    "googleapis": "^144.0.0",
+    "open": "^10.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
