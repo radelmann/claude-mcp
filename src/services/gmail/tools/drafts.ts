@@ -7,17 +7,14 @@ function encodeEmail(opts: {
   body: string;
   replyToMessageId?: string;
 }): string {
-  const lines = [
+  const headers = [
     `To: ${opts.to}`,
     `Subject: ${opts.subject}`,
     `Content-Type: text/plain; charset="UTF-8"`,
     `MIME-Version: 1.0`,
-    opts.replyToMessageId ? `In-Reply-To: ${opts.replyToMessageId}` : "",
-    ``,
-    opts.body,
-  ]
-    .filter((l) => l !== "")
-    .join("\r\n");
+    ...(opts.replyToMessageId ? [`In-Reply-To: ${opts.replyToMessageId}`] : []),
+  ];
+  const lines = [...headers, ``, opts.body].join("\r\n");
   return Buffer.from(lines).toString("base64url");
 }
 
