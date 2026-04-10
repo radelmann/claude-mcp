@@ -1,7 +1,9 @@
 import {
   listAccountsTool, listAccountsHandler,
   searchMessagesTool, searchMessagesHandler,
+  searchAllAccountsTool, searchAllAccountsHandler,
   readMessageTool, readMessageHandler,
+  readMessagesTool, readMessagesHandler,
   archiveMessageTool, archiveMessageHandler,
   deleteMessageTool, deleteMessageHandler,
   labelMessageTool, labelMessageHandler,
@@ -19,14 +21,16 @@ import type { ServiceModule } from "../../types.js";
 const gmailService: ServiceModule = {
   name: "gmail",
   tools: [
-    listAccountsTool, searchMessagesTool, readMessageTool, readThreadTool,
+    listAccountsTool, searchMessagesTool, searchAllAccountsTool, readMessageTool, readMessagesTool, readThreadTool,
     listLabelsTool, labelMessageTool, archiveMessageTool, deleteMessageTool,
     createDraftTool, sendEmailTool, listDraftsTool, getProfileTool,
   ],
   handlers: {
     gmail_list_accounts: listAccountsHandler,
     gmail_search_messages: searchMessagesHandler,
+    gmail_search_all_accounts: searchAllAccountsHandler,
     gmail_read_message: readMessageHandler,
+    gmail_read_messages: readMessagesHandler,
     gmail_read_thread: readThreadHandler,
     gmail_list_labels: listLabelsHandler,
     gmail_label_message: labelMessageHandler,

@@ -13,7 +13,9 @@ A personal MCP (Model Context Protocol) server providing Gmail tools across mult
 | `gmail_list_accounts` | List all configured and authorized Gmail accounts |
 | `gmail_get_profile` | Get profile info for an account |
 | `gmail_search_messages` | Search messages using Gmail query syntax |
+| `gmail_search_all_accounts` | Search messages across all authorized accounts simultaneously, results grouped by account |
 | `gmail_read_message` | Read a single message by ID |
+| `gmail_read_messages` | Batch-read up to 10 messages in a single call (cross-account supported) |
 | `gmail_read_thread` | Read a full email thread |
 | `gmail_list_labels` | List all labels for an account |
 | `gmail_label_message` | Apply or remove labels on a message |
