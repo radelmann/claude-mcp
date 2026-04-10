@@ -19,9 +19,9 @@ A personal MCP (Model Context Protocol) server providing Gmail tools across mult
 | `gmail_label_message` | Apply or remove labels on a message |
 | `gmail_archive_message` | Archive a message |
 | `gmail_delete_message` | Delete a message |
-| `gmail_create_draft` | Create a draft email |
+| `gmail_create_draft` | Create a draft email; supports reply and reply-all via `reply_to_message_id` and `reply_all` |
 | `gmail_list_drafts` | List drafts for an account |
-| `gmail_send_email` | Send an email |
+| `gmail_send_email` | Send an email; supports reply and reply-all via `reply_to_message_id` and `reply_all` |
 
 ## Setup
 

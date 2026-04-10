@@ -3,19 +3,60 @@ import type { ToolDefinition, ToolHandler } from "../../../types.js";
 
 function encodeEmail(opts: {
   to: string;
+  cc?: string;
   subject: string;
   body: string;
-  replyToMessageId?: string;
+  rfcMessageId?: string; // RFC 2822 Message-ID header value of the message being replied to
 }): string {
   const headers = [
     `To: ${opts.to}`,
+    ...(opts.cc ? [`Cc: ${opts.cc}`] : []),
     `Subject: ${opts.subject}`,
     `Content-Type: text/plain; charset="UTF-8"`,
     `MIME-Version: 1.0`,
-    ...(opts.replyToMessageId ? [`In-Reply-To: ${opts.replyToMessageId}`] : []),
+    ...(opts.rfcMessageId ? [
+      `In-Reply-To: ${opts.rfcMessageId}`,
+      `References: ${opts.rfcMessageId}`,
+    ] : []),
   ];
   const lines = [...headers, ``, opts.body].join("\r\n");
   return Buffer.from(lines).toString("base64url");
+}
+
+async function resolveReplyInfo(
+  gmail: Awaited<ReturnType<typeof getGmailClient>>,
+  replyToMessageId: string,
+  replyAll: boolean
+): Promise<{ rfcMessageId: string; threadId: string; cc?: string }> {
+  const msg = await gmail.users.messages.get({
+    userId: "me",
+    id: replyToMessageId,
+    format: "metadata",
+    metadataHeaders: ["Message-ID", "From", "To", "Cc"],
+  });
+
+  const rfcMessageId = getHeader(msg.data.payload?.headers, "Message-ID") ?? "";
+  const threadId = msg.data.threadId ?? "";
+
+  if (!replyAll) return { rfcMessageId, threadId };
+
+  // Build Cc from original From + To + Cc, excluding the current user
+  const profile = await gmail.users.getProfile({ userId: "me" });
+  const myEmail = profile.data.emailAddress?.toLowerCase() ?? "";
+
+  const originalFrom = getHeader(msg.data.payload?.headers, "From") ?? "";
+  const originalTo = getHeader(msg.data.payload?.headers, "To") ?? "";
+  const originalCc = getHeader(msg.data.payload?.headers, "Cc") ?? "";
+
+  const allRecipients = [originalFrom, originalTo, originalCc]
+    .join(",")
+    .split(",")
+    .map((r) => r.trim())
+    .filter((r) => r && !r.toLowerCase().includes(myEmail));
+
+  const cc = [...new Set(allRecipients)].join(", ") || undefined;
+
+  return { rfcMessageId, threadId, cc };
 }
 
 const ACCOUNT_PARAM = {
@@ -25,17 +66,32 @@ const ACCOUNT_PARAM = {
   },
 };
 
+const REPLY_PARAMS = {
+  reply_to_message_id: {
+    type: "string",
+    description: "Gmail message ID to reply to (optional). When provided, the message will be threaded as a reply — RFC 2822 headers and threadId are resolved automatically.",
+  },
+  reply_all: {
+    type: "boolean",
+    description: "When true and reply_to_message_id is set, Cc is auto-populated with all original recipients (From, To, Cc) excluding yourself. Ignored if reply_to_message_id is not provided.",
+  },
+  thread_id: {
+    type: "string",
+    description: "Thread ID to add this message to (optional). Not needed when reply_to_message_id is provided, as the thread is resolved automatically.",
+  },
+};
+
 export const createDraftTool: ToolDefinition = {
   name: "gmail_create_draft",
-  description: "Create a draft email in Gmail.",
+  description: "Create a draft email in Gmail. Supports plain replies and reply-all via reply_to_message_id and reply_all.",
   inputSchema: {
     type: "object",
     properties: {
-      to: { type: "string", description: "Recipient email address" },
+      to: { type: "string", description: "Primary recipient email address" },
+      cc: { type: "string", description: "Cc recipients as a comma-separated string (optional). When reply_all is true, this is populated automatically." },
       subject: { type: "string", description: "Email subject" },
       body: { type: "string", description: "Plain text email body" },
-      reply_to_message_id: { type: "string", description: "Message ID to reply to (optional)" },
-      thread_id: { type: "string", description: "Thread ID to add this draft to (optional)" },
+      ...REPLY_PARAMS,
       ...ACCOUNT_PARAM,
     },
     required: ["to", "subject", "body"],
@@ -46,15 +102,27 @@ export const createDraftHandler: ToolHandler = async (args) => {
   const accountId = resolveAccount(args);
   const gmail = await getGmailClient(accountId);
 
+  let rfcMessageId: string | undefined;
+  let threadId = args.thread_id as string | undefined;
+  let cc = args.cc as string | undefined;
+
+  if (args.reply_to_message_id) {
+    const reply = await resolveReplyInfo(gmail, args.reply_to_message_id as string, !!args.reply_all);
+    rfcMessageId = reply.rfcMessageId;
+    threadId ??= reply.threadId;
+    cc ??= reply.cc;
+  }
+
   const raw = encodeEmail({
     to: args.to as string,
+    cc,
     subject: args.subject as string,
     body: args.body as string,
-    replyToMessageId: args.reply_to_message_id as string | undefined,
+    rfcMessageId,
   });
 
   const message: Record<string, unknown> = { raw };
-  if (args.thread_id) message.threadId = args.thread_id;
+  if (threadId) message.threadId = threadId;
 
   const res = await gmail.users.drafts.create({
     userId: "me",
@@ -64,22 +132,22 @@ export const createDraftHandler: ToolHandler = async (args) => {
   return {
     content: [{
       type: "text",
-      text: `Draft created in account "${accountId}".\nDraft ID: ${res.data.id}\nTo: ${args.to}\nSubject: ${args.subject}`,
+      text: `Draft created in account "${accountId}".\nDraft ID: ${res.data.id}\nTo: ${args.to}${cc ? `\nCc: ${cc}` : ""}\nSubject: ${args.subject}`,
     }],
   };
 };
 
 export const sendEmailTool: ToolDefinition = {
   name: "gmail_send_email",
-  description: "Send an email from a Gmail account.",
+  description: "Send an email from a Gmail account. Supports plain replies and reply-all via reply_to_message_id and reply_all.",
   inputSchema: {
     type: "object",
     properties: {
-      to: { type: "string", description: "Recipient email address" },
+      to: { type: "string", description: "Primary recipient email address" },
+      cc: { type: "string", description: "Cc recipients as a comma-separated string (optional). When reply_all is true, this is populated automatically." },
       subject: { type: "string", description: "Email subject" },
       body: { type: "string", description: "Plain text email body" },
-      reply_to_message_id: { type: "string", description: "Message ID to reply to (optional)" },
-      thread_id: { type: "string", description: "Thread ID to reply to (optional)" },
+      ...REPLY_PARAMS,
       ...ACCOUNT_PARAM,
     },
     required: ["to", "subject", "body"],
@@ -90,22 +158,34 @@ export const sendEmailHandler: ToolHandler = async (args) => {
   const accountId = resolveAccount(args);
   const gmail = await getGmailClient(accountId);
 
+  let rfcMessageId: string | undefined;
+  let threadId = args.thread_id as string | undefined;
+  let cc = args.cc as string | undefined;
+
+  if (args.reply_to_message_id) {
+    const reply = await resolveReplyInfo(gmail, args.reply_to_message_id as string, !!args.reply_all);
+    rfcMessageId = reply.rfcMessageId;
+    threadId ??= reply.threadId;
+    cc ??= reply.cc;
+  }
+
   const raw = encodeEmail({
     to: args.to as string,
+    cc,
     subject: args.subject as string,
     body: args.body as string,
-    replyToMessageId: args.reply_to_message_id as string | undefined,
+    rfcMessageId,
   });
 
   const requestBody: Record<string, unknown> = { raw };
-  if (args.thread_id) requestBody.threadId = args.thread_id;
+  if (threadId) requestBody.threadId = threadId;
 
   const res = await gmail.users.messages.send({ userId: "me", requestBody });
 
   return {
     content: [{
       type: "text",
-      text: `Email sent from account "${accountId}".\nMessage ID: ${res.data.id}\nTo: ${args.to}\nSubject: ${args.subject}`,
+      text: `Email sent from account "${accountId}".\nMessage ID: ${res.data.id}\nTo: ${args.to}${cc ? `\nCc: ${cc}` : ""}\nSubject: ${args.subject}`,
     }],
   };
 };
