@@ -1,4 +1,4 @@
-# rob-mcp
+# claude-mcp
 
 A personal MCP (Model Context Protocol) server providing Gmail tools across multiple Google accounts.
 
