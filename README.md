@@ -4,7 +4,7 @@ A personal MCP (Model Context Protocol) server providing Gmail tools across mult
 
 ## Overview
 
-`rob-mcp` exposes Gmail functionality as MCP tools, enabling Claude (and other MCP clients) to read, search, compose, and manage email across multiple configured Google accounts.
+`claude-mcp` exposes Gmail functionality as MCP tools, enabling Claude (and other MCP clients) to read, search, compose, and manage email across multiple configured Google accounts.
 
 ## Tools
 
@@ -92,9 +92,9 @@ Add the server to your MCP client config (e.g. `claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
-    "rob-mcp": {
+    "claude-mcp": {
       "command": "node",
-      "args": ["/path/to/rob-mcp/dist/index.js"]
+      "args": ["/path/to/claude-mcp/dist/index.js"]
     }
   }
 }
@@ -111,7 +111,7 @@ Add the server as a local MCP connector in the Claude Desktop app:
 ```json
 {
   "command": "node",
-  "args": ["/path/to/rob-mcp/dist/index.js"]
+  "args": ["/path/to/claude-mcp/dist/index.js"]
 }
 ```
 
@@ -120,7 +120,7 @@ Add the server as a local MCP connector in the Claude Desktop app:
 ## Project structure
 
 ```
-rob-mcp/
+claude-mcp/
 ├── config/
 │   └── accounts.json          # Account definitions
 ├── credentials/               # Git-ignored; OAuth client + tokens
