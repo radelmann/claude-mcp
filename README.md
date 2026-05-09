@@ -1,12 +1,14 @@
 # claude-mcp
 
-A personal MCP (Model Context Protocol) server providing Gmail tools across multiple Google accounts.
+A personal MCP (Model Context Protocol) server providing Gmail and Google Calendar tools across multiple Google accounts.
 
 ## Overview
 
-`claude-mcp` exposes Gmail functionality as MCP tools, enabling Claude (and other MCP clients) to read, search, compose, and manage email across multiple configured Google accounts.
+`claude-mcp` exposes Google Workspace functionality as MCP tools, enabling Claude (and other MCP clients) to read, search, compose, and manage email and calendar events across multiple configured Google accounts. Each account can opt in to one or more services independently.
 
 ## Tools
+
+### Gmail
 
 | Tool | Description |
 |------|-------------|
@@ -31,12 +33,20 @@ A personal MCP (Model Context Protocol) server providing Gmail tools across mult
 | `gmail_create_filter` | Create a filter with criteria + action (e.g. archive, label, delete, forward) |
 | `gmail_delete_filter` | Delete a filter by ID |
 
+### Calendar
+
+| Tool | Description |
+|------|-------------|
+| `calendar_list_accounts` | List all configured and authorized Calendar accounts |
+| `calendar_list_calendars` | List all calendars accessible to an account |
+| `calendar_create_event` | Create an event on a calendar; supports all-day or timed events, attendees, and invitations |
+
 ## Setup
 
 ### Prerequisites
 
 - Node.js 18+
-- A Google Cloud project with the Gmail API enabled and an OAuth 2.0 client configured
+- A Google Cloud project with the Gmail API and Google Calendar API enabled, and an OAuth 2.0 client configured
 
 ### 1. Add OAuth credentials
 
@@ -48,12 +58,12 @@ credentials/google-oauth-client.json
 
 ### 2. Configure accounts
 
-Edit `config/accounts.json` to define your accounts:
+Edit `config/accounts.json` to define your accounts. Each account opts into one or more services (`gmail`, `calendar`):
 
 ```json
 {
   "accounts": [
-    { "id": "personal", "label": "Personal", "services": ["gmail"] },
+    { "id": "personal", "label": "Personal", "services": ["gmail", "calendar"] },
     { "id": "work", "label": "Work", "services": ["gmail"] }
   ]
 }
@@ -61,14 +71,18 @@ Edit `config/accounts.json` to define your accounts:
 
 ### 3. Authorize each account
 
-Run the interactive OAuth flow for each account:
+Run the interactive OAuth flow once per (account, service) pair. The `--service` flag defaults to `gmail`:
 
 ```bash
+# Gmail
 npm run add-account -- --name personal
 npm run add-account -- --name work
+
+# Calendar (only for accounts whose services array includes "calendar")
+npm run add-account -- --name personal --service calendar
 ```
 
-This opens a browser for Google sign-in and stores the resulting tokens in `credentials/tokens.json`.
+Each run opens a browser for Google sign-in and stores the resulting tokens in `credentials/tokens.json` keyed by account and service. Authorizing a new service does not affect existing tokens for other services on the same account.
 
 ### 4. Build
 
@@ -139,16 +153,25 @@ claude-mcp/
     ├── config.ts              # Path/config helpers
     ├── types.ts               # Shared TypeScript types
     ├── auth/
-    │   └── token-store.ts     # Token persistence
+    │   ├── oauth.ts           # Shared Google OAuth2 helpers
+    │   └── token-store.ts     # Token persistence (keyed by account + service)
     └── services/
         ├── registry.ts        # Aggregates all service modules
-        └── gmail/
-            ├── auth.ts        # OAuth2 client setup
-            ├── client.ts      # Authenticated Gmail API client
-            ├── index.ts       # Gmail service module
+        ├── gmail/
+        │   ├── auth.ts        # GMAIL_SCOPES
+        │   ├── client.ts      # Authenticated Gmail API client
+        │   ├── index.ts       # Gmail service module
+        │   └── tools/         # Tool definitions + handlers
+        │       ├── messages.ts
+        │       ├── threads.ts
+        │       ├── labels.ts
+        │       ├── drafts.ts
+        │       └── filters.ts
+        └── calendar/
+            ├── auth.ts        # CALENDAR_SCOPES
+            ├── client.ts      # Authenticated Calendar API client
+            ├── index.ts       # Calendar service module
             └── tools/         # Tool definitions + handlers
-                ├── messages.ts
-                ├── threads.ts
-                ├── labels.ts
-                └── drafts.ts
+                ├── calendars.ts
+                └── events.ts
 ```
