@@ -27,6 +27,7 @@ export type ToolHandler = (args: Record<string, unknown>) => Promise<ToolResult>
 
 export interface ServiceModule {
   name: string;
+  scopes: string[];
   tools: ToolDefinition[];
   handlers: Record<string, ToolHandler>;
 }

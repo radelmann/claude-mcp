@@ -26,10 +26,12 @@ import {
   createFilterTool, createFilterHandler,
   deleteFilterTool, deleteFilterHandler,
 } from "./tools/filters.js";
+import { GMAIL_SCOPES } from "./auth.js";
 import type { ServiceModule } from "../../types.js";
 
 const gmailService: ServiceModule = {
   name: "gmail",
+  scopes: GMAIL_SCOPES,
   tools: [
     listAccountsTool, searchMessagesTool, searchAllAccountsTool, readMessageTool, readMessagesTool, readThreadTool,
     listLabelsTool, createLabelTool, renameLabelTool, deleteLabelTool, labelMessageTool, archiveMessageTool, deleteMessageTool,

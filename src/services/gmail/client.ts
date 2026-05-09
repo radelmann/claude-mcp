@@ -1,9 +1,9 @@
 import { google } from "googleapis";
 import type { gmail_v1 } from "googleapis";
-import { getAuthenticatedClient } from "./auth.js";
+import { getAuthenticatedClient } from "../../auth/oauth.js";
 
 export async function getGmailClient(accountId: string): Promise<gmail_v1.Gmail> {
-  const auth = await getAuthenticatedClient(accountId);
+  const auth = await getAuthenticatedClient(accountId, "gmail");
   return google.gmail({ version: "v1", auth });
 }
 

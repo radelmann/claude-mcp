@@ -1,24 +1,42 @@
 /**
  * add-account.ts
- * Authorizes a Gmail account and stores its OAuth2 tokens.
+ * Authorizes an account for a given service and stores its OAuth2 tokens.
  *
  * Usage:
  *   npm run add-account -- --name personal
+ *   npm run add-account -- --name personal --service calendar
  *   npm run add-account -- --name pm-personal
  *   npm run add-account -- --name pm-finance
+ *
+ * --service defaults to "gmail" for backwards compatibility.
+ * Tokens are stored per (account, service), so a single account can be
+ * authorized for multiple services independently.
  */
 
 import { createServer } from "http";
-import { createOAuth2Client, getAuthUrl, exchangeCode, REDIRECT_PORT } from "../src/services/gmail/auth.js";
+import { createOAuth2Client, getAuthUrl, exchangeCode, REDIRECT_PORT } from "../src/auth/oauth.js";
 import { saveTokens } from "../src/auth/token-store.js";
 import { getAccountsConfig } from "../src/config.js";
+import { SERVICES } from "../src/services/registry.js";
 
-const nameIdx = process.argv.indexOf("--name");
-if (nameIdx === -1 || !process.argv[nameIdx + 1]) {
-  console.error("Usage: npm run add-account -- --name <account-id>");
+function getFlag(name: string): string | undefined {
+  const idx = process.argv.indexOf(`--${name}`);
+  return idx === -1 ? undefined : process.argv[idx + 1];
+}
+
+const accountId = getFlag("name");
+if (!accountId) {
+  console.error("Usage: npm run add-account -- --name <account-id> [--service <service>]");
   process.exit(1);
 }
-const accountId = process.argv[nameIdx + 1];
+
+const serviceName = getFlag("service") ?? "gmail";
+
+const service = SERVICES.find((s) => s.name === serviceName);
+if (!service) {
+  console.error(`Unknown service "${serviceName}". Available: ${SERVICES.map((s) => s.name).join(", ")}`);
+  process.exit(1);
+}
 
 const config = getAccountsConfig();
 const account = config.accounts.find((a) => a.id === accountId);
@@ -28,15 +46,18 @@ if (!account) {
   process.exit(1);
 }
 
-if (!account.services.includes("gmail")) {
-  console.error(`Account "${accountId}" does not have "gmail" in its services list.`);
+if (!account.services.includes(serviceName)) {
+  console.error(
+    `Account "${accountId}" does not have "${serviceName}" in its services list. ` +
+    `Add it to config/accounts.json under this account's services array.`
+  );
   process.exit(1);
 }
 
-console.log(`\nAuthorizing Gmail for: ${account.label} (${accountId})`);
+console.log(`\nAuthorizing ${serviceName} for: ${account.label} (${accountId})`);
 
 const client = createOAuth2Client();
-const authUrl = getAuthUrl(client);
+const authUrl = getAuthUrl(client, service.scopes);
 
 console.log(`\nOpening browser for Google authorization...`);
 console.log(`\nIf the browser does not open, visit:\n${authUrl}\n`);
@@ -68,7 +89,7 @@ const code = await new Promise<string>((resolve, reject) => {
     }
 
     res.writeHead(200, { "Content-Type": "text/html" });
-    res.end(`<h2>Success!</h2><p><strong>${account.label}</strong> is connected. You can close this tab.</p>`);
+    res.end(`<h2>Success!</h2><p><strong>${account.label}</strong> is connected for ${serviceName}. You can close this tab.</p>`);
     server.close();
     resolve(code);
   });
@@ -83,5 +104,5 @@ const code = await new Promise<string>((resolve, reject) => {
 
 console.log(`\nExchanging code for tokens...`);
 const tokens = await exchangeCode(client, code);
-saveTokens(accountId, "gmail", tokens);
-console.log(`\nDone! "${account.label}" (${accountId}) is now authorized.\n`);
+saveTokens(accountId, serviceName, tokens);
+console.log(`\nDone! "${account.label}" (${accountId}) is now authorized for ${serviceName}.\n`);
