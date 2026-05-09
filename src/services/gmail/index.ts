@@ -16,6 +16,11 @@ import {
   sendEmailTool, sendEmailHandler,
   listDraftsTool, listDraftsHandler,
 } from "./tools/drafts.js";
+import {
+  listFiltersTool, listFiltersHandler,
+  createFilterTool, createFilterHandler,
+  deleteFilterTool, deleteFilterHandler,
+} from "./tools/filters.js";
 import type { ServiceModule } from "../../types.js";
 
 const gmailService: ServiceModule = {
@@ -24,6 +29,7 @@ const gmailService: ServiceModule = {
     listAccountsTool, searchMessagesTool, searchAllAccountsTool, readMessageTool, readMessagesTool, readThreadTool,
     listLabelsTool, labelMessageTool, archiveMessageTool, deleteMessageTool,
     createDraftTool, sendEmailTool, listDraftsTool, getProfileTool,
+    listFiltersTool, createFilterTool, deleteFilterTool,
   ],
   handlers: {
     gmail_list_accounts: listAccountsHandler,
@@ -40,6 +46,9 @@ const gmailService: ServiceModule = {
     gmail_send_email: sendEmailHandler,
     gmail_list_drafts: listDraftsHandler,
     gmail_get_profile: getProfileHandler,
+    gmail_list_filters: listFiltersHandler,
+    gmail_create_filter: createFilterHandler,
+    gmail_delete_filter: deleteFilterHandler,
   },
 };
 

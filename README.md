@@ -24,6 +24,9 @@ A personal MCP (Model Context Protocol) server providing Gmail tools across mult
 | `gmail_create_draft` | Create a draft email; supports reply and reply-all via `reply_to_message_id` and `reply_all` |
 | `gmail_list_drafts` | List drafts for an account |
 | `gmail_send_email` | Send an email; supports reply and reply-all via `reply_to_message_id` and `reply_all` |
+| `gmail_list_filters` | List all filters configured on an account |
+| `gmail_create_filter` | Create a filter with criteria + action (e.g. archive, label, delete, forward) |
+| `gmail_delete_filter` | Delete a filter by ID |
 
 ## Setup
 
