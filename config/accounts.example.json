@@ -1,0 +1,14 @@
+{
+  "accounts": [
+    {
+      "id": "personal",
+      "label": "Personal",
+      "services": ["gmail", "calendar"]
+    },
+    {
+      "id": "work",
+      "label": "Work",
+      "services": ["gmail"]
+    }
+  ]
+}

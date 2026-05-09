@@ -1,5 +1,6 @@
 node_modules/
 dist/
 credentials/
+config/accounts.json
 .env
 .DS_Store

@@ -62,7 +62,13 @@ credentials/google-oauth-client.json
 
 ### 2. Configure accounts
 
-Edit `config/accounts.json` to define your accounts. Each account opts into one or more services (`gmail`, `calendar`):
+Copy the example file and edit it for your accounts. `config/accounts.json` is git-ignored (it lists your personal account IDs); `config/accounts.example.json` is checked in as a schema reference.
+
+```bash
+cp config/accounts.example.json config/accounts.json
+```
+
+Each account opts into one or more services (`gmail`, `calendar`):
 
 ```json
 {
@@ -146,7 +152,8 @@ Add the server as a local MCP connector in the Claude Desktop app:
 ```
 claude-mcp/
 ├── config/
-│   └── accounts.json          # Account definitions
+│   ├── accounts.example.json  # Schema reference (checked in)
+│   └── accounts.json          # Your account definitions (git-ignored)
 ├── credentials/               # Git-ignored; OAuth client + tokens
 │   ├── google-oauth-client.json
 │   └── tokens.json
