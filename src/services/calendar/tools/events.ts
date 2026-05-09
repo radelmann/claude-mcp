@@ -158,3 +158,206 @@ export const deleteEventHandler: ToolHandler = async (args) => {
     }],
   };
 };
+
+function formatEventDetail(event: calendar_v3.Schema$Event, accountId: string, calendarId: string): string {
+  const startOut = event.start?.dateTime ?? event.start?.date ?? "(unknown)";
+  const endOut = event.end?.dateTime ?? event.end?.date ?? "(unknown)";
+  return [
+    `Account: ${accountId}`,
+    `Calendar: ${calendarId}`,
+    `ID: ${event.id}`,
+    `Summary: ${event.summary ?? "(no summary)"}`,
+    `Start: ${startOut}`,
+    `End: ${endOut}`,
+    event.location ? `Location: ${event.location}` : null,
+    event.status ? `Status: ${event.status}` : null,
+    event.attendees?.length
+      ? `Attendees: ${event.attendees.map((a) => `${a.email}${a.responseStatus ? ` (${a.responseStatus})` : ""}`).join(", ")}`
+      : null,
+    event.organizer?.email ? `Organizer: ${event.organizer.email}` : null,
+    event.htmlLink ? `Link: ${event.htmlLink}` : null,
+    event.description ? `\n${event.description}` : null,
+  ].filter(Boolean).join("\n");
+}
+
+export const getEventTool: ToolDefinition = {
+  name: "calendar_get_event",
+  description: "Read the full details of a single Calendar event by ID.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      event_id: { type: "string", description: "The Calendar event ID" },
+      calendar_id: {
+        type: "string",
+        description: "Calendar ID the event lives on. Defaults to 'primary'.",
+      },
+      ...ACCOUNT_PARAM,
+    },
+    required: ["event_id"],
+  },
+};
+
+export const getEventHandler: ToolHandler = async (args) => {
+  const accountId = resolveAccount(args);
+  const calendar = await getCalendarClient(accountId);
+
+  const calendarId = (args.calendar_id as string | undefined)?.trim() || "primary";
+  const eventId = args.event_id as string;
+
+  const res = await calendar.events.get({ calendarId, eventId });
+  return {
+    content: [{ type: "text", text: formatEventDetail(res.data, accountId, calendarId) }],
+  };
+};
+
+export const listEventsTool: ToolDefinition = {
+  name: "calendar_list_events",
+  description:
+    "List events on a calendar. Defaults to upcoming events from now onward. Recurring events are expanded into individual instances and ordered by start time.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      calendar_id: {
+        type: "string",
+        description: "Calendar ID. Defaults to 'primary'. Use calendar_list_calendars to find other IDs.",
+      },
+      time_min: {
+        type: "string",
+        description: "Lower bound (RFC3339 datetime, e.g. '2026-05-09T00:00:00-07:00' or '2026-05-09T00:00:00Z'). Defaults to now.",
+      },
+      time_max: {
+        type: "string",
+        description: "Upper bound (RFC3339 datetime). Optional; if omitted the range is open-ended.",
+      },
+      query: {
+        type: "string",
+        description: "Free-text search across summary, description, location, attendees, and creator/organizer.",
+      },
+      max_results: {
+        type: "number",
+        description: "Maximum number of events to return (default 25, API max 2500).",
+      },
+      ...ACCOUNT_PARAM,
+    },
+  },
+};
+
+export const listEventsHandler: ToolHandler = async (args) => {
+  const accountId = resolveAccount(args);
+  const calendar = await getCalendarClient(accountId);
+
+  const calendarId = (args.calendar_id as string | undefined)?.trim() || "primary";
+  const timeMin = (args.time_min as string | undefined) ?? new Date().toISOString();
+  const timeMax = args.time_max as string | undefined;
+  const q = args.query as string | undefined;
+  const maxResults = typeof args.max_results === "number" ? args.max_results : 25;
+
+  const res = await calendar.events.list({
+    calendarId,
+    timeMin,
+    timeMax,
+    q,
+    maxResults,
+    singleEvents: true,
+    orderBy: "startTime",
+  });
+
+  const items = res.data.items ?? [];
+  if (items.length === 0) {
+    return { content: [{ type: "text", text: `No events found on calendar "${calendarId}" in account "${accountId}" for the given range.` }] };
+  }
+
+  const lines = items.map((e) => {
+    const start = e.start?.dateTime ?? e.start?.date ?? "?";
+    const end = e.end?.dateTime ?? e.end?.date ?? "?";
+    const summary = e.summary ?? "(no summary)";
+    const loc = e.location ? ` @ ${e.location}` : "";
+    return `  [${e.id}] ${start} → ${end}\n    ${summary}${loc}`;
+  });
+
+  const rangeStr = timeMax ? `${timeMin} to ${timeMax}` : `from ${timeMin}`;
+  return {
+    content: [{
+      type: "text",
+      text: `Events on calendar "${calendarId}" in account "${accountId}" (${items.length}, ${rangeStr}):\n\n${lines.join("\n\n")}`,
+    }],
+  };
+};
+
+export const updateEventTool: ToolDefinition = {
+  name: "calendar_update_event",
+  description:
+    "Patch fields on an existing Calendar event. Only the fields you provide are changed; everything else is preserved. " +
+    "When updating start or end, follow the same date/datetime conventions as calendar_create_event. " +
+    "Note: providing attendees replaces the entire attendee list.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      event_id: { type: "string", description: "The Calendar event ID" },
+      calendar_id: {
+        type: "string",
+        description: "Calendar ID the event lives on. Defaults to 'primary'.",
+      },
+      summary: { type: "string", description: "New event title" },
+      start: { type: "string", description: "New start (ISO date or datetime)" },
+      end: { type: "string", description: "New end (ISO date or datetime)" },
+      time_zone: {
+        type: "string",
+        description: "IANA timezone for new timed start/end if they have no offset.",
+      },
+      description: { type: "string", description: "New event description (replaces existing)" },
+      location: { type: "string", description: "New location (replaces existing)" },
+      attendees: {
+        type: "array",
+        items: { type: "string" },
+        description: "New attendee email list. Replaces the entire existing attendee list.",
+      },
+      send_updates: {
+        type: "string",
+        enum: ["all", "externalOnly", "none"],
+        description: "Whether to email attendees about the change. Defaults to 'none'.",
+      },
+      ...ACCOUNT_PARAM,
+    },
+    required: ["event_id"],
+  },
+};
+
+export const updateEventHandler: ToolHandler = async (args) => {
+  const accountId = resolveAccount(args);
+  const calendar = await getCalendarClient(accountId);
+
+  const calendarId = (args.calendar_id as string | undefined)?.trim() || "primary";
+  const eventId = args.event_id as string;
+  const timeZone = args.time_zone as string | undefined;
+
+  const requestBody: calendar_v3.Schema$Event = {};
+  if (typeof args.summary === "string") requestBody.summary = args.summary;
+  if (typeof args.description === "string") requestBody.description = args.description;
+  if (typeof args.location === "string") requestBody.location = args.location;
+  if (typeof args.start === "string") requestBody.start = buildEventDateTime(args.start, timeZone);
+  if (typeof args.end === "string") requestBody.end = buildEventDateTime(args.end, timeZone);
+  if (Array.isArray(args.attendees)) {
+    requestBody.attendees = (args.attendees as string[]).map((email) => ({ email }));
+  }
+
+  if (Object.keys(requestBody).length === 0) {
+    throw new Error("calendar_update_event requires at least one field to change.");
+  }
+
+  const sendUpdates = (args.send_updates as string | undefined) ?? "none";
+
+  const res = await calendar.events.patch({
+    calendarId,
+    eventId,
+    sendUpdates,
+    requestBody,
+  });
+
+  return {
+    content: [{
+      type: "text",
+      text: `Event updated:\n\n${formatEventDetail(res.data, accountId, calendarId)}`,
+    }],
+  };
+};
