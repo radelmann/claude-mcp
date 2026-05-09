@@ -13,6 +13,8 @@ import { readThreadTool, readThreadHandler } from "./tools/threads.js";
 import {
   listLabelsTool, listLabelsHandler,
   createLabelTool, createLabelHandler,
+  renameLabelTool, renameLabelHandler,
+  deleteLabelTool, deleteLabelHandler,
 } from "./tools/labels.js";
 import {
   createDraftTool, createDraftHandler,
@@ -30,7 +32,7 @@ const gmailService: ServiceModule = {
   name: "gmail",
   tools: [
     listAccountsTool, searchMessagesTool, searchAllAccountsTool, readMessageTool, readMessagesTool, readThreadTool,
-    listLabelsTool, createLabelTool, labelMessageTool, archiveMessageTool, deleteMessageTool,
+    listLabelsTool, createLabelTool, renameLabelTool, deleteLabelTool, labelMessageTool, archiveMessageTool, deleteMessageTool,
     createDraftTool, sendEmailTool, listDraftsTool, getProfileTool,
     listFiltersTool, createFilterTool, deleteFilterTool,
   ],
@@ -43,6 +45,8 @@ const gmailService: ServiceModule = {
     gmail_read_thread: readThreadHandler,
     gmail_list_labels: listLabelsHandler,
     gmail_create_label: createLabelHandler,
+    gmail_rename_label: renameLabelHandler,
+    gmail_delete_label: deleteLabelHandler,
     gmail_label_message: labelMessageHandler,
     gmail_archive_message: archiveMessageHandler,
     gmail_delete_message: deleteMessageHandler,

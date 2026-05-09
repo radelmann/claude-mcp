@@ -102,3 +102,64 @@ export const createLabelHandler: ToolHandler = async (args) => {
     }],
   };
 };
+
+export const renameLabelTool: ToolDefinition = {
+  name: "gmail_rename_label",
+  description: "Rename an existing user label. Use gmail_list_labels to find the label ID.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      label_id: { type: "string", description: "The Gmail label ID (from gmail_list_labels)" },
+      name: { type: "string", description: "New display name for the label. Use '/' for nested labels (e.g. 'Receipts/2026')." },
+      ...ACCOUNT_PARAM,
+    },
+    required: ["label_id", "name"],
+  },
+};
+
+export const renameLabelHandler: ToolHandler = async (args) => {
+  const accountId = resolveAccount(args);
+  const gmail = await getGmailClient(accountId);
+
+  const res = await gmail.users.labels.patch({
+    userId: "me",
+    id: args.label_id as string,
+    requestBody: { name: args.name as string },
+  });
+
+  const label = res.data;
+  return {
+    content: [{
+      type: "text",
+      text: `Label ${label.id} renamed to "${label.name}" in account "${accountId}".`,
+    }],
+  };
+};
+
+export const deleteLabelTool: ToolDefinition = {
+  name: "gmail_delete_label",
+  description:
+    "Delete a user label by ID. Gmail automatically removes the label from any messages that have it (the messages themselves are not affected). System labels cannot be deleted.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      label_id: { type: "string", description: "The Gmail label ID (from gmail_list_labels)" },
+      ...ACCOUNT_PARAM,
+    },
+    required: ["label_id"],
+  },
+};
+
+export const deleteLabelHandler: ToolHandler = async (args) => {
+  const accountId = resolveAccount(args);
+  const gmail = await getGmailClient(accountId);
+
+  await gmail.users.labels.delete({
+    userId: "me",
+    id: args.label_id as string,
+  });
+
+  return {
+    content: [{ type: "text", text: `Label ${args.label_id} deleted from account "${accountId}".` }],
+  };
+};

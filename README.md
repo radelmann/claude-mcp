@@ -19,6 +19,8 @@ A personal MCP (Model Context Protocol) server providing Gmail tools across mult
 | `gmail_read_thread` | Read a full email thread |
 | `gmail_list_labels` | List all labels for an account |
 | `gmail_create_label` | Create a new user label; returns the label ID for use in filters |
+| `gmail_rename_label` | Rename an existing user label |
+| `gmail_delete_label` | Delete a user label; Gmail removes it from any messages that have it |
 | `gmail_label_message` | Apply or remove labels on a message |
 | `gmail_archive_message` | Archive a message |
 | `gmail_delete_message` | Delete a message |
