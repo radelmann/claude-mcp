@@ -3,7 +3,10 @@ import { getGoogleOAuthClient } from "../../config.js";
 import { getTokens, saveTokens } from "../../auth/token-store.js";
 import type { OAuthTokens } from "../../types.js";
 
-export const GMAIL_SCOPES = ["https://mail.google.com/"];
+export const GMAIL_SCOPES = [
+  "https://mail.google.com/",
+  "https://www.googleapis.com/auth/gmail.settings.basic",
+];
 export const REDIRECT_PORT = 3000;
 export const REDIRECT_URI = `http://localhost:${REDIRECT_PORT}/callback`;
 
