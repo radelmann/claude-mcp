@@ -117,3 +117,44 @@ export const createEventHandler: ToolHandler = async (args) => {
     }],
   };
 };
+
+export const deleteEventTool: ToolDefinition = {
+  name: "calendar_delete_event",
+  description:
+    "Delete an event from a Google Calendar by ID. The deletion is permanent (the event is moved to the Calendar trash and removed from the visible calendar).",
+  inputSchema: {
+    type: "object",
+    properties: {
+      event_id: { type: "string", description: "The Calendar event ID (returned by calendar_create_event or via list/get tools)" },
+      calendar_id: {
+        type: "string",
+        description: "Calendar ID the event lives on. Use 'primary' for the account's primary calendar (the default).",
+      },
+      send_updates: {
+        type: "string",
+        enum: ["all", "externalOnly", "none"],
+        description: "Whether to email a cancellation to attendees. Defaults to 'none'.",
+      },
+      ...ACCOUNT_PARAM,
+    },
+    required: ["event_id"],
+  },
+};
+
+export const deleteEventHandler: ToolHandler = async (args) => {
+  const accountId = resolveAccount(args);
+  const calendar = await getCalendarClient(accountId);
+
+  const calendarId = (args.calendar_id as string | undefined)?.trim() || "primary";
+  const eventId = args.event_id as string;
+  const sendUpdates = (args.send_updates as string | undefined) ?? "none";
+
+  await calendar.events.delete({ calendarId, eventId, sendUpdates });
+
+  return {
+    content: [{
+      type: "text",
+      text: `Event ${eventId} deleted from calendar "${calendarId}" in account "${accountId}".`,
+    }],
+  };
+};

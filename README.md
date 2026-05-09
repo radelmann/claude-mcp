@@ -40,6 +40,7 @@ A personal MCP (Model Context Protocol) server providing Gmail and Google Calend
 | `calendar_list_accounts` | List all configured and authorized Calendar accounts |
 | `calendar_list_calendars` | List all calendars accessible to an account |
 | `calendar_create_event` | Create an event on a calendar; supports all-day or timed events, attendees, and invitations |
+| `calendar_delete_event` | Delete an event by ID; optionally notifies attendees of the cancellation |
 
 ## Setup
 
