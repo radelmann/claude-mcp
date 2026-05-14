@@ -1,7 +1,7 @@
 {
-  "name": "rob-mcp",
+  "name": "claude-mcp",
   "version": "1.0.0",
-  "description": "Rob's personal MCP server",
+  "description": "Personal MCP server",
   "type": "module",
   "scripts": {
     "build": "tsc",

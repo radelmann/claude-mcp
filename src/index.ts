@@ -7,7 +7,7 @@ import {
 import { getAllTools, getAllHandlers } from "./services/registry.js";
 
 const server = new Server(
-  { name: "rob-mcp", version: "1.0.0" },
+  { name: "claude-mcp", version: "1.0.0" },
   { capabilities: { tools: {} } }
 );
 
