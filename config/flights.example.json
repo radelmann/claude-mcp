@@ -1,0 +1,12 @@
+{
+  "note": "No file needed. Set SERPAPI_API_KEY in your Claude Desktop MCP server env block.",
+  "example_claude_desktop_config": {
+    "claude-mcp": {
+      "command": "node",
+      "args": ["/path/to/claude-mcp/dist/index.js"],
+      "env": {
+        "SERPAPI_API_KEY": "your-key-here"
+      }
+    }
+  }
+}

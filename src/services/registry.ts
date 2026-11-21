@@ -1,11 +1,14 @@
 import gmailService from "./gmail/index.js";
 import calendarService from "./calendar/index.js";
+import flightsService from "./flights/index.js";
+import imessagesService from "./imessages/index.js";
 import type { ServiceModule } from "../types.js";
 
 export const SERVICES: ServiceModule[] = [
   gmailService,
   calendarService,
-  // Future: slackService, notionService, ...
+  flightsService,
+  imessagesService,
 ];
 
 export function getAllTools() {
